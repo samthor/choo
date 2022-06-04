@@ -1,5 +1,6 @@
 import { TrainGraph } from './graph';
 import { CountSet } from './helper/maps';
+import { arrayContainsSub, findAllIndex } from './helper/array';
 
 
 /**
@@ -166,7 +167,17 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     if (!aSide?.through.has(b)) {
       return false;
     }
-    // TODO: not if slices span this connection
+
+    // Check slices that might go through here.
+    // TODO: this is slow - O(n * m), n = slices here, m = slice length
+    for (const s of throughNode.slices.uniques()) {
+      const slice = this.#slices.get(s)!;
+
+      // Find anywhere that the slice follows this connection.
+      if (arrayContainsSub(slice.along, [a, through, b]) || arrayContainsSub(slice.along, [b, through, a])) {
+        return false;
+      }
+    }
 
     aSide.through.delete(b);
     bSide!.through.delete(a);
@@ -174,7 +185,6 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
   }
 
   lookupNode(at: K): { other: Map<K, K[]> } {
-    // TODO: return unique pairs
     const node = this.#implicitNode(at);
 
     const other = new Map<K, K[]>();

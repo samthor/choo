@@ -82,9 +82,12 @@ test('check something', () => {
   assert.strictEqual(tg.growSlice(1, 1, 99, () => { throw new Error(`should not be called`) }), 5);
   assert.strictEqual(tg._nodesForTest().get('c')?.slices.count(), 1, 'reached `c`');
 
-  assert.strictEqual(tg.growSlice(1, -1, -8), -8, 'removed most');
-  assert.strictEqual(tg.growSlice(1, 1, -10), -2, 'removed all');
+  assert.strictEqual(tg.growSlice(1, -1, 1, () => { throw new Error(`should not be called`) }), 1);
+  assert(!tg.disconnect('a', 'b', 'c'));
 
-  assert.deepStrictEqual(tg.lookupSlice(1), { along: ['b', 'c'], front: 2, back: 8, length: 0 })
+  assert.strictEqual(tg.growSlice(1, -1, -8), -8, 'removed most');
+  assert.strictEqual(tg.growSlice(1, 1, -10), -3, 'removed all');
+
+  assert.deepStrictEqual(tg.lookupSlice(1), { along: ['b', 'c'], front: 3, back: 7, length: 0 })
 
 });

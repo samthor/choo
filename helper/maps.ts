@@ -35,7 +35,11 @@ export class CountSet<T> {
     return this.#m.has(t);
   }
 
-  *keys(): Iterator<T> {
+  uniques() {
+    return this.#m.keys();
+  }
+
+  *keys(): IterableIterator<T> {
     for (const [t, count] of this.#m.entries()) {
       for (let i = 0; i < count; ++i) {
         yield t;
