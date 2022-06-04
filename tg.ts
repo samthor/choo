@@ -35,6 +35,7 @@ interface SliceImpl<K> {
   along: K[];
   front: number;
   back: number;
+  length: number;
 }
 
 
@@ -191,7 +192,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       return false;
     }
 
-    const slice = { along: [on], front: 0, back: 0 };
+    const slice = { along: [on], front: 0, back: 0, length: 0 };
     this.#slices.set(id, slice);
 
     const node = this.#implicitNode(on);
@@ -200,8 +201,28 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  growSlice(id: S, end: 1 | -1, by: number, where?: (choice: K[]) => K | undefined): void {
-    throw new Error('Method not implemented.');
+  growSlice(id: S, end: 1 | -1, by: number, where?: (choice: K[]) => K | undefined): number {
+    const slice = this.#slices.get(id);
+    if (slice === undefined) {
+      return 0;  // cannot grow slice not on board
+    }
+
+    if (by < 0) {
+      // e.g., reduce by -100, but length is 50, brings to -50
+      by = Math.max(by, -slice.length);
+    }
+    if (by === 0) {
+      return 0;
+    }
+    const max = by;
+
+    if (by > 0) {
+      // grow
+    } else {
+      // shrink
+    }
+
+    throw new Error('TODO');
   }
 
   deleteSlice(id: S): boolean {

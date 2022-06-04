@@ -71,4 +71,9 @@ test('check something', () => {
   assert(tg.addSlice(1, 'b'));
   assert(!tg.addSlice(1, 'c'), 'already on board');
 
+  assert.strictEqual(tg.growSlice(1, 1, -10), 0, 'can\'t shrink below zero');
+  assert.strictEqual(tg.growSlice(1, -1, 0), 0, 'can\'t shrink below zero');
+
+
+
 });
