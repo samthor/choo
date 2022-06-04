@@ -21,6 +21,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": true,
+    "allowSyntheticDefaultImports": true,
   },
   "include": [
     // include the JS files you'd like to check here

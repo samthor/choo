@@ -39,17 +39,17 @@ export interface TrainGraph<K, S, D> {
   /**
    * Adds a connection from a->b through the passed node.
    */
-  connect(a: K, b: K, through: K): boolean;
+  connect(a: K, through: K, b: K): boolean;
 
   /**
    * Removes a connection from a->b via the passed node.
    */
-  disconnect(a: K, b: K, through: K): boolean;
+  disconnect(a: K, through: K, b: K): boolean;
 
   /**
-   * Return the connections at this node.
+   * Return the edges and connections at this node.
    */
-  lookupNode(at: K): any;
+  lookupNode(at: K): { other: Map<K, K[]> };
 
   /**
    * Adds a slice on the given node.

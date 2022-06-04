@@ -112,7 +112,11 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     throw new Error('Method not implemented.');
   }
 
-  connect(a: K, b: K, through: K): boolean {
+  connect(a: K, through: K, b: K): boolean {
+    if (a === b || through === a || through === b) {
+      throw new Error(`joins must be unique`);
+    } 
+
     const throughNode = this.#implicitNode(through);
     const aSide = throughNode.other.get(a);
     const bSide = throughNode.other.get(b);
@@ -132,7 +136,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  disconnect(a: K, b: K, through: K): boolean {
+  disconnect(a: K, through: K, b: K): boolean {
     const throughNode = this.#implicitNode(through);
     const aSide = throughNode.other.get(a);
     const bSide = throughNode.other.get(b);
@@ -148,14 +152,17 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  lookupNode(at: K): any {
+  lookupNode(at: K): { other: Map<K, K[]> } {
     // TODO: return unique pairs
     const node = this.#implicitNode(at);
 
+    const other = new Map<K, K[]>();
+    for (const [o, side] of node.other) {
+      other.set(o, [...side.through]);
+    };
+
     return {
-      // other edges connected here
-      other: [...node.other.keys()],
-      // TODO: connections between these edges
+      other,
     };
   }
 
