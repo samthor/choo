@@ -89,5 +89,5 @@ test('check something', () => {
   assert.strictEqual(tg.growSlice(1, 1, -10), -3, 'removed all');
 
   assert.deepStrictEqual(tg.lookupSlice(1), { along: ['b', 'c'], front: 3, back: 7, length: 0 })
-
+  assert(!tg.deleteEdge('b', 'c'));
 });

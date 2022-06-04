@@ -6,16 +6,19 @@ import { arrayContainsSub, findAllIndex } from './helper/array';
 /**
  * Information stored between two nodes.
  */
-interface EdgeImpl<K> {
+interface EdgeImpl<K, S> {
   low: K;
   high: K;
   length: number;
+
+  // TODO: this says something is here, but not if it's full or partial
+  slices: CountSet<S>;
 }
 
 
-interface NodeSideImpl<K> {
+interface NodeSideImpl<K, S> {
   through: Set<K>;
-  edge: EdgeImpl<K>;
+  edge: EdgeImpl<K, S>;
 }
 
 
@@ -24,7 +27,7 @@ interface NodeSideImpl<K> {
  */
 interface NodeImpl<K, S> {
   id: K;
-  other: Map<K, NodeSideImpl<K>>;
+  other: Map<K, NodeSideImpl<K, S>>;
   slices: CountSet<S>;
 }
 
@@ -83,10 +86,11 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       return false;
     }
 
-    const edge: EdgeImpl<K> = {
+    const edge: EdgeImpl<K, S> = {
       low,
       high,
       length,
+      slices: new CountSet(),
     };
 
     const highNode = this.#implicitNode(high);
@@ -105,18 +109,29 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
 
   lookupEdge(a: K, b: K): { length: number; low: K; high: K; } | undefined {
     const aNode = this.#implicitNode(a);
-    const e = aNode.other.get(b);
-    return e ? {...e.edge} : undefined;
+    const side = aNode.other.get(b);
+    if (!side) {
+      return undefined;
+    }
+    const { edge } = side;
+    return {
+      low: edge.low,
+      high: edge.high,
+      length: edge.length,
+    };
   }
 
   deleteEdge(a: K, b: K): boolean {
     const aNode = this.#implicitNode(a);
-    const e = aNode.other.get(b);
-
-    if (e === undefined) {
+    const side = aNode.other.get(b);
+    if (side === undefined) {
       return false;
     }
-    // TODO: not if slices are here
+
+    // There's slices here, so the edge can't be deleted.
+    if (side.edge.slices.count() !== 0) {
+      return false;
+    }
 
     aNode.other.delete(b);
 
@@ -257,6 +272,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
           if (slice.front === side.edge.length) {
             slice.along.pop();
             slice.front = 0;
+            side.edge.slices.delete(id);
           }
         } else {
           let max = side.edge.length - slice.back;
@@ -272,6 +288,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
           if (slice.back === side.edge.length) {
             slice.along.shift();
             slice.back = 0;
+            side.edge.slices.delete(id);
           }
         }
 
@@ -357,9 +374,11 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       if (end === 1) {
         slice.along.push(choice);
         slice.front = side.edge.length;
+        side.edge.slices.add(id);
       } else {
         slice.along.unshift(choice);
         slice.back = side.edge.length;
+        side.edge.slices.add(id);
       }
     }
 
