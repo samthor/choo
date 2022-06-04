@@ -1,4 +1,7 @@
 
+/**
+ * Finds all indexes of a given matching predicate.
+ */
 export function findAllIndex<X>(arr: X[], predicate: (x: X) => boolean): number[] {
   const out: number[] = [];
 
@@ -11,22 +14,26 @@ export function findAllIndex<X>(arr: X[], predicate: (x: X) => boolean): number[
   return out;
 }
 
+/**
+ * Checks whether the larger array contains the passed sub-array at any index.
+ */
 export function arrayContainsSub<X>(arr: X[], sub: X[]): boolean {
-  if (sub.length === 0) {
-    return true;
-  } else if (sub.length > arr.length) {
-    return false;
-  }
+  return findSubArray(arr, sub) !== -1;
+}
 
-outer:
+/**
+ * Finds the subarray in the larger array.
+ */
+export function findSubArray<X>(arr: X[], sub: X[]): number {
+  outer:
   for (let i = 0; i <= arr.length - sub.length; ++i) {
     for (let j = 0; j < sub.length; ++j) {
       if (arr[i + j] !== sub[j]) {
         continue outer;
       }
     }
-    return true;
+    return i;
   }
 
-  return false;
+  return -1;
 }
