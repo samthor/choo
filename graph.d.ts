@@ -52,9 +52,9 @@ export interface TrainGraph<K, S, D> {
   lookupNode(at: K): { other: Map<K, K[]> };
 
   /**
-   * Adds a slice on the given node.
+   * Adds a slice on the given node. Returns false if it's already on the graph.
    */
-  addSlice(id: S, on: K): void;
+  addSlice(id: S, on: K): boolean;
 
   /**
    * Grows the specified slice by a given integer size (possibly -ve).
@@ -64,13 +64,13 @@ export interface TrainGraph<K, S, D> {
   /**
    * Deletes the given slice.
    */
-  deleteSlice(id: S): void;
+  deleteSlice(id: S): boolean;
 
   /**
    * Looks up the given slice. Returns the edges that the slice is along with indents. If `along`
    * is single-length, then the slice is a zero slice on the node (and front/back will be zero).
    */
-  lookupSlice(id: S): { along: K[], front: number, back: number };
+  lookupSlice(id: S): { along: K[], front: number, back: number } | undefined;
 
   /**
    * Queries the space under this slice. Includes all other slices found (including itself if wrap).

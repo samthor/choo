@@ -1,4 +1,5 @@
 import { TrainGraph } from './graph';
+import { CountSet } from './helper/maps';
 
 
 /**
@@ -20,9 +21,27 @@ interface NodeSideImpl<K> {
 /**
  * Information stored at every node.
  */
-interface NodeImpl<K> {
+interface NodeImpl<K, S> {
   id: K;
   other: Map<K, NodeSideImpl<K>>;
+  slices: CountSet<S>;
+}
+
+
+/**
+ * Slice descriptor.
+ */
+interface SliceImpl<K> {
+  along: K[];
+  front: number;
+  back: number;
+}
+
+
+function check(cond: boolean) {
+  if (!cond) {
+    throw new Error(`check assert failed`);
+  }
 }
 
 
@@ -34,7 +53,8 @@ function assertPositiveInteger(check: number) {
 
 
 export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
-  #nodes = new Map<K, NodeImpl<K>>();
+  #nodes = new Map<K, NodeImpl<K, S>>();
+  #slices = new Map<S, SliceImpl<K>>();
 
   _nodesForTest() {
     return this.#nodes;
@@ -45,7 +65,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     if (prev !== undefined) {
       return prev;
     }
-    const update: NodeImpl<K> = { id, other: new Map() };
+    const update: NodeImpl<K, S> = { id, other: new Map(), slices: new CountSet() };
     this.#nodes.set(id, update);
     return update;
   };
@@ -166,20 +186,68 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     };
   }
 
-  addSlice(id: S, on: K): void {
-    throw new Error('Method not implemented.');
+  addSlice(id: S, on: K): boolean {
+    if (this.#slices.has(id)) {
+      return false;
+    }
+
+    const slice = { along: [on], front: 0, back: 0 };
+    this.#slices.set(id, slice);
+
+    const node = this.#implicitNode(on);
+    node.slices.add(id);
+
+    return true;
   }
 
   growSlice(id: S, end: 1 | -1, by: number, where?: (choice: K[]) => K | undefined): void {
     throw new Error('Method not implemented.');
   }
 
-  deleteSlice(id: S): void {
-    throw new Error('Method not implemented.');
+  deleteSlice(id: S): boolean {
+    const slice = this.#slices.get(id);
+    if (slice === undefined) {
+      return false;
+    }
+
+    const along = slice.along;
+
+    // If we're just on a single node, then deletion is pretty easy.
+    if (along.length === 1) {
+      check(slice.front === 0);
+      check(slice.back === 0);
+
+      const node = this.#implicitNode(along[0]);
+      check(node.slices.delete(id));
+      check(!node.slices.has(id));
+
+    } else {
+      // TODO: delete along segmnets
+
+      // Check if we're not on the front/end nodes. If so we don't need to remove those cases.
+      if (slice.front !== 0) {
+        slice.along.shift();
+      }
+      if (slice.back !== 0) {
+        slice.along.pop();
+      }
+      for (const nodeId of slice.along) {
+        const node = this.#implicitNode(nodeId);
+        node.slices.delete(id);
+      }
+    }
+
+    this.#slices.delete(id);
+    return true;
   }
 
-  lookupSlice(id: S): { along: K[]; front: number; back: number; } {
-    throw new Error('Method not implemented.');
+  lookupSlice(id: S): { along: K[]; front: number; back: number; } | undefined {
+    const slice = this.#slices.get(id);
+    if (!slice) {
+      return undefined;
+    }
+
+    return { along: [...slice.along], front: slice.front, back: slice.back };
   }
 
   querySlice(id: S): { other: K[]; } {

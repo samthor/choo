@@ -6,7 +6,7 @@ import { TrainGraphImpl } from './tg';
 
 test('check something', () => {
 
-  const tg = new TrainGraphImpl<string, string, string>();
+  const tg = new TrainGraphImpl<string, number, string>();
 
   // edge creation tests
 
@@ -58,5 +58,17 @@ test('check something', () => {
   });
 
   assert(tg.connect('c', 'b', 'a'), 'new connection');
+
+  // test slices
+
+  assert(!tg.deleteSlice(1234));
+  assert(tg.addSlice(1234, 'random-node'), 'add to random node OK');
+  assert(tg._nodesForTest().get('random-node')?.slices.count() === 1);
+  assert(tg.deleteSlice(1234));
+  assert(!tg.deleteSlice(1234));
+  assert(tg._nodesForTest().get('random-node')?.slices.count() === 0);
+
+  assert(tg.addSlice(1, 'b'));
+  assert(!tg.addSlice(1, 'c'), 'already on board');
 
 });
