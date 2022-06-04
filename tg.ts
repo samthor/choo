@@ -107,7 +107,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  lookupEdge(a: K, b: K): { length: number; low: K; high: K; } | undefined {
+  lookupEdge(a: K, b: K): { length: number, low: K, high: K, slices: S[] } | undefined {
     const aNode = this.#implicitNode(a);
     const side = aNode.other.get(b);
     if (!side) {
@@ -118,6 +118,9 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       low: edge.low,
       high: edge.high,
       length: edge.length,
+
+      // TODO: just uniques for render
+      slices: [...edge.slices.uniques()],
     };
   }
 
@@ -199,7 +202,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  lookupNode(at: K): { other: Map<K, K[]> } {
+  lookupNode(at: K): { other: Map<K, K[]>, slices: S[] } {
     const node = this.#implicitNode(at);
 
     const other = new Map<K, K[]>();
@@ -209,6 +212,9 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
 
     return {
       other,
+
+      // TODO: just uniques for render
+      slices: [...node.slices.uniques()],
     };
   }
 
@@ -430,7 +436,12 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       return undefined;
     }
 
-    return { along: [...slice.along], front: slice.front, back: slice.back, length: slice.length };
+    return {
+      along: [...slice.along],
+      front: slice.front,
+      back: slice.back,
+      length: slice.length,
+    };
   }
 
   querySlice(id: S): { other: K[]; } {

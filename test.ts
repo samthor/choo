@@ -10,6 +10,12 @@ test('check something', () => {
 
   // edge creation tests
 
+  assert(!tg.deleteEdge('z1', 'z2'));
+  assert(tg.addEdge('z1', 'z2', 1));
+  assert(!tg.addEdge('z1', 'z2', 1));
+  assert(tg.deleteEdge('z1', 'z2'));
+  assert(!tg.deleteEdge('z1', 'z2'));
+
   assert.throws(() => tg.addEdge('a', 'b', -1));
   assert.throws(() => tg.addEdge('a', 'b', 0));
   assert.throws(() => tg.addEdge('a', 'b', 0.125));
@@ -23,6 +29,7 @@ test('check something', () => {
     low: 'a',
     high: 'b',
     length: 123,
+    slices: [],
   }, 'lookup should work regardless of node order');
 
   assert.deepStrictEqual(tg.lookupNode('b'), {
@@ -30,6 +37,7 @@ test('check something', () => {
       ['a', []],
       ['c', []],
     ]),
+    slices: [],
   });
 
   // connection tests
@@ -46,6 +54,7 @@ test('check something', () => {
       ['a', ['c']],
       ['c', ['a']],
     ]),
+    slices: [],
   });
 
   assert(tg.disconnect('c', 'b', 'a'), 'disconnect');
@@ -55,6 +64,7 @@ test('check something', () => {
       ['a', []],
       ['c', []],
     ]),
+    slices: [],
   });
 
   assert(tg.connect('c', 'b', 'a'), 'new connection');
@@ -70,6 +80,14 @@ test('check something', () => {
 
   assert(tg.addSlice(1, 'b'));
   assert(!tg.addSlice(1, 'c'), 'already on board');
+
+  assert.deepStrictEqual(tg.lookupNode('b'), {
+    other: new Map([
+      ['a', ['c']],
+      ['c', ['a']],
+    ]),
+    slices: [1],
+  });
 
   assert.strictEqual(tg.growSlice(1, 1, -10), 0, 'can\'t shrink below zero');
   assert.strictEqual(tg.growSlice(1, -1, 0), 0, 'can\'t shrink below zero');
@@ -88,6 +106,21 @@ test('check something', () => {
   assert.strictEqual(tg.growSlice(1, -1, -8), -8, 'removed most');
   assert.strictEqual(tg.growSlice(1, 1, -10), -3, 'removed all');
 
+  assert.deepStrictEqual(tg.lookupNode('b'), {
+    other: new Map([
+      ['a', ['c']],
+      ['c', ['a']],
+    ]),
+    slices: [],  // not specifically on edge
+  });
+
   assert.deepStrictEqual(tg.lookupSlice(1), { along: ['b', 'c'], front: 3, back: 7, length: 0 })
   assert(!tg.deleteEdge('b', 'c'));
+
+  assert.deepStrictEqual(tg.lookupEdge('b', 'c'), {
+    low: 'b',
+    high: 'c',
+    length: 10,
+    slices: [1],
+  });
 });

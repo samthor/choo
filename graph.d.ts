@@ -49,7 +49,7 @@ export interface TrainGraph<K, S, D> {
   /**
    * Return the edges and connections at this node.
    */
-  lookupNode(at: K): { other: Map<K, K[]> };
+  lookupNode(at: K): { other: Map<K, K[]>, slices: S[] };
 
   /**
    * Adds a slice on the given node. Returns false if it's already on the graph.
