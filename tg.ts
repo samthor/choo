@@ -1,6 +1,6 @@
-import { TrainGraph } from './graph';
+import { DescribedSlice, TrainGraph } from './graph';
 import { CountSet } from './helper/maps';
-import { arrayContainsSub, findAllIndex } from './helper/array';
+import { arrayContainsSub } from './helper/array';
 
 
 /**
@@ -126,19 +126,27 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
 
   deleteEdge(a: K, b: K): boolean {
     const aNode = this.#implicitNode(a);
-    const side = aNode.other.get(b);
-    if (side === undefined) {
+    const bNode = this.#implicitNode(b);
+
+    const aToBSide = aNode.other.get(b);
+    if (aToBSide === undefined) {
       return false;
     }
 
     // There's slices here, so the edge can't be deleted.
-    if (side.edge.slices.count() !== 0) {
+    if (aToBSide.edge.slices.count() !== 0) {
       return false;
     }
 
+    aToBSide.through.forEach((check) => {
+      aNode.other.get(check)?.through.delete(b);
+    });
     aNode.other.delete(b);
 
-    const bNode = this.#implicitNode(b);
+    const bToASide = bNode.other.get(a)!;
+    bToASide.through.forEach((check) => {
+      bNode.other.get(check)?.through.delete(a);
+    });
     bNode.other.delete(a);
 
     return true;
@@ -232,7 +240,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  growSlice(id: S, end: 1 | -1, by: number, where?: (choices: K[]) => K | undefined): number {
+  modifySlice(id: S, end: 1 | -1, by: number, where?: (choices: K[]) => K | undefined): number {
     const slice = this.#slices.get(id);
     if (slice === undefined) {
       return 0;  // cannot grow slice not on board
@@ -411,7 +419,11 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       check(!node.slices.has(id));
 
     } else {
-      // TODO: delete along segmnets
+      // Delete along edges.
+      for (let i = 1; i < slice.along.length; ++i) {
+        const side = this.#nodes.get(slice.along[i - 1])!.other.get(slice.along[i])!;
+        side.edge.slices.delete(id);
+      }
 
       // Check if we're not on the front/end nodes. If so we don't need to remove those cases.
       if (slice.front !== 0) {
@@ -430,7 +442,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  lookupSlice(id: S): { along: K[], front: number, back: number, length: number } | undefined {
+  lookupSlice(id: S): DescribedSlice<K, S> | undefined {
     const slice = this.#slices.get(id);
     if (!slice) {
       return undefined;
@@ -447,5 +459,5 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
   querySlice(id: S): { other: K[]; } {
     throw new Error('Method not implemented.');
   }
-  
+
 }

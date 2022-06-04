@@ -8,6 +8,14 @@
  */
 
 
+export interface DescribedSlice<K, S> {
+  along: K[];
+  front: number;
+  back: number;
+  length: number;
+}
+
+
 export interface TrainGraph<K, S, D> {
 
   /**
@@ -19,7 +27,7 @@ export interface TrainGraph<K, S, D> {
   /**
    * Looks up the edge between these two nodes.
    */
-  lookupEdge(a: K, b: K): { length: number, low: K, high: K } | undefined;
+  lookupEdge(a: K, b: K): { length: number, low: K, high: K, slices: S[] } | undefined;
 
   /**
    * Deletes the edge between these two nodes.
@@ -59,7 +67,7 @@ export interface TrainGraph<K, S, D> {
   /**
    * Grows the specified slice by a given integer size (possibly -ve).
    */
-  growSlice(id: S, end: -1|1, by: number, where?: (choice: K[]) => K | undefined): number;
+  modifySlice(id: S, end: -1|1, by: number, where?: (choice: K[]) => K | undefined): number;
 
   /**
    * Deletes the given slice.
@@ -70,7 +78,7 @@ export interface TrainGraph<K, S, D> {
    * Looks up the given slice. Returns the edges that the slice is along with indents. If `along`
    * is single-length, then the slice is a zero slice on the node (and front/back will be zero).
    */
-  lookupSlice(id: S): { along: K[], front: number, back: number, length: number } | undefined;
+  lookupSlice(id: S): DescribedSlice<K, S> | undefined;
 
   /**
    * Queries the space under this slice. Includes all other slices found (including itself if wrap).

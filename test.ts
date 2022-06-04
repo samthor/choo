@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert';
 
 import { TrainGraphImpl } from './tg';
+import * as helpers from './graph-helpers';
 
 test('check something', () => {
 
@@ -89,22 +90,22 @@ test('check something', () => {
     slices: [1],
   });
 
-  assert.strictEqual(tg.growSlice(1, 1, -10), 0, 'can\'t shrink below zero');
-  assert.strictEqual(tg.growSlice(1, -1, 0), 0, 'can\'t shrink below zero');
+  assert.strictEqual(tg.modifySlice(1, 1, -10), 0, 'can\'t shrink below zero');
+  assert.strictEqual(tg.modifySlice(1, -1, 0), 0, 'can\'t shrink below zero');
 
-  assert.strictEqual(tg.growSlice(1, 1, 5, (choices) => {
+  assert.strictEqual(tg.modifySlice(1, 1, 5, (choices) => {
     assert.deepStrictEqual(choices, ['a', 'c']);
     return 'c';
   }), 5);
   assert.strictEqual(tg._nodesForTest().get('c')?.slices.count(), 0, 'not reached `c`');
-  assert.strictEqual(tg.growSlice(1, 1, 99, () => { throw new Error(`should not be called`) }), 5);
+  assert.strictEqual(tg.modifySlice(1, 1, 99, () => { throw new Error(`should not be called`) }), 5);
   assert.strictEqual(tg._nodesForTest().get('c')?.slices.count(), 1, 'reached `c`');
 
-  assert.strictEqual(tg.growSlice(1, -1, 1, () => { throw new Error(`should not be called`) }), 1);
+  assert.strictEqual(tg.modifySlice(1, -1, 1, () => { throw new Error(`should not be called`) }), 1);
   assert(!tg.disconnect('a', 'b', 'c'));
 
-  assert.strictEqual(tg.growSlice(1, -1, -8), -8, 'removed most');
-  assert.strictEqual(tg.growSlice(1, 1, -10), -3, 'removed all');
+  assert.strictEqual(tg.modifySlice(1, -1, -8), -8, 'removed most');
+  assert.strictEqual(tg.modifySlice(1, 1, -10), -3, 'removed all');
 
   assert.deepStrictEqual(tg.lookupNode('b'), {
     other: new Map([
@@ -122,5 +123,84 @@ test('check something', () => {
     high: 'c',
     length: 10,
     slices: [1],
+  });
+});
+
+test('check deleting connections', () => {
+
+  const tg = new TrainGraphImpl<string, number, string>();
+
+  assert(tg.addEdge('a', 'b', 10));
+  assert(tg.addEdge('c', 'b', 17));
+
+  assert(tg.connect('a', 'b', 'c'));
+  assert.deepStrictEqual(tg.lookupNode('b'), {
+    other: new Map([
+      ['a', ['c']],
+      ['c', ['a']],
+    ]),
+    slices: [],
+  });
+
+  assert(tg.deleteEdge('b', 'c'));
+  assert.deepStrictEqual(tg.lookupNode('b'), {
+    other: new Map([
+      ['a', []],  // b still has edge to a
+    ]),
+    slices: [],
+  });
+
+  assert(tg.addEdge('c', 'b', 4));
+  assert.deepStrictEqual(tg.lookupNode('b'), {
+    other: new Map([
+      ['a', []],
+      ['c', []],
+    ]),
+    slices: [],
+  }, 'confirm that connection is not implicitly re-added');
+
+});
+
+test('helpers', () => {
+  const tg = new TrainGraphImpl<string, number, string>();
+
+  assert(tg.addEdge('a', 'b', 10));
+  assert(tg.addEdge('c', 'b', 17));
+  assert(tg.connect('a', 'b', 'c'));
+
+  assert(tg.addSlice(1, 'b'));
+  assert(tg.modifySlice(1, 1, 3, () => 'c'));
+  assert.deepStrictEqual(tg.lookupSlice(1), {
+    along: ['b', 'c'],
+    back: 0,
+    front: 14,
+    length: 3,
+  });
+
+  assert(helpers.cloneSlice(tg, 1, 2));
+
+  assert.deepStrictEqual(tg.lookupSlice(2), {
+    along: ['b', 'c'],
+    back: 0,
+    front: 14,
+    length: 3,
+  });
+
+  assert.deepStrictEqual(tg.lookupNode('b'), {
+    other: new Map([
+      ['a', ['c']],
+      ['c', ['a']],
+    ]),
+    slices: [1, 2],
+  });
+
+  assert(helpers.splitEdge(tg, 'c', 'b', 10, 'q1'));  // b->q1 will be 7 length
+  assert(helpers.splitEdge(tg, 'b', 'q1', 2, 'q2'));  // b->q2 = 2, q2->q1 = 5, q1->c = 10
+
+  assert.deepStrictEqual(tg.lookupSlice(2), {
+    along: ['b', 'q2', 'q1'],
+    back: 0,
+    front: 4,
+    length: 3,
   });
 });
