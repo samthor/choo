@@ -70,7 +70,7 @@ export interface TrainGraph<K, S, D> {
    * Looks up the given slice. Returns the edges that the slice is along with indents. If `along`
    * is single-length, then the slice is a zero slice on the node (and front/back will be zero).
    */
-  lookupSlice(id: S): { along: K[], front: number, back: number } | undefined;
+  lookupSlice(id: S): { along: K[], front: number, back: number, length: number } | undefined;
 
   /**
    * Queries the space under this slice. Includes all other slices found (including itself if wrap).

@@ -216,82 +216,146 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     }
     const max = by;
 
-    if (by > 0) {
-      // grow
-
-      for (;;) {
-        let nodeId: K;
-        let newlyAbutting = false;
-
-        // Consume as much along this edge as we can. This might be zero if already abutting.
-        if (end === 1) {
-          nodeId = slice.along.at(-1)!;
-          const amount = Math.min(slice.front, by);
-          slice.front -= amount;
-          by -= amount;
-
-          newlyAbutting = amount > 0 && slice.front === 0;
-        } else {
-          nodeId = slice.along[0];
-          const amount = Math.min(slice.back, by);
-          slice.back -= amount;
-          by -= amount;
-
-          newlyAbutting = amount > 0 && slice.back === 0;
-        }
-
-        // Get the node we might be abutting against.
-        const node = this.#implicitNode(nodeId);
-
-        // If we're now newly abutting the node then record our presence again. We might already be
-        // here if the slice has looped around a bunch.
-        if (newlyAbutting) {
-          node.slices.add(id);
-        }
-
-        check(by >= 0);
-        if (by === 0) {
-          break;  // nothing more to do, either abutting or not
-        }
-
-        // At this point, we're abutting the target node and want to go further, so let the caller
-        // decide where to go (or choose for them if there's only one option).
-        // TODO: maybe always force a choice
-        let choices: K[];
-
+    if (by < 0) {
+      // shrink
+      by = -by;
+      while (by > 0) {
         if (slice.along.length === 1) {
-          choices = [...node.other.keys()];  // can go anywhere, node is O(1)
-        } else {
-          // Step back a node and see what direction the slice can go in.
-          const prev = slice.along.at(end === 1 ? -2 : 1)!;
-          choices = [...node.other.get(prev)?.through ?? []];  // only connections
+          throw new Error(`still have by=${by} even with single node`);
         }
 
-        const choice: K | undefined = choices.length > 1 && where?.(choices) || choices[0];
-        if (choice === undefined) {
-          break;  // can't go anywhere
-        }
+        // By definition, we can consume the "head" edge.
+        const nodeId = slice.along.at(end === 1 ? -1 : 0)!;
+        const prevNodeId = slice.along.at(end === 1 ? -2 : 1)!;
+        const node = this.#implicitNode(nodeId);
+        const side = node.other.get(prevNodeId)!;
 
-        const side = node.other.get(choice);
-        if (side === undefined) {
-          break;  // invalid choice
-        }
+        let wasAbutting: boolean;
 
-        // Finally, push the choice we made onto the right end.
+        // Consume as much along this edge as we can.
         if (end === 1) {
-          slice.along.push(choice);
-          slice.front = side.edge.length;
+          let max = side.edge.length - slice.front;
+          if (slice.along.length === 2) {
+            max -= slice.back;  // only on this edge
+          }
+          wasAbutting = (slice.front === 0);
+          const amount = Math.min(max, by);
+          slice.front += amount;
+          by -= amount;
+
+          // We might remove the front edge.
+          if (slice.front === side.edge.length) {
+            slice.along.pop();
+            slice.front = 0;
+          }
         } else {
-          slice.along.unshift(choice);
-          slice.back = side.edge.length;
+          let max = side.edge.length - slice.back;
+          if (slice.along.length === 2) {
+            max -= slice.front;  // only on this edge
+          }
+          wasAbutting = (slice.back === 0);
+          const amount = Math.min(max, by);
+          slice.back += amount;
+          by -= amount;
+
+          // We might remove the back edge.
+          if (slice.back === side.edge.length) {
+            slice.along.shift();
+            slice.back = 0;
+          }
+        }
+
+        // If we were previously abutting the node, then remove our presence.
+        if (wasAbutting) {
+          node.slices.delete(id);
         }
       }
 
-      return max - by;
+      slice.length += max;  // max is -ve
+
+      check(slice.along.length !== 0);
+      if (slice.length === 0) {
+        check(slice.along.length <= 2);  // can be a single or pair
+      } else {
+        check(slice.along.length >= 2);
+      }
+      check(slice.length >= 0);
+ 
+      return max;  // will be -ve
     }
 
-    // otherwise, shrink
-    throw new Error('TODO');
+    // otherwise, grow!
+    for (;;) {
+      let nodeId: K;
+      let newlyAbutting: boolean;
+
+      // Consume as much along this edge as we can. This might be zero if already abutting.
+      if (end === 1) {
+        nodeId = slice.along.at(-1)!;
+        const amount = Math.min(slice.front, by);
+        slice.front -= amount;
+        by -= amount;
+
+        newlyAbutting = amount > 0 && slice.front === 0;
+      } else {
+        nodeId = slice.along[0];
+        const amount = Math.min(slice.back, by);
+        slice.back -= amount;
+        by -= amount;
+
+        newlyAbutting = amount > 0 && slice.back === 0;
+      }
+
+      // Get the node we might be abutting against.
+      const node = this.#implicitNode(nodeId);
+
+      // If we're now newly abutting the node then record our presence again. We might already be
+      // here if the slice has looped around a bunch.
+      if (newlyAbutting) {
+        node.slices.add(id);
+      }
+
+      check(by >= 0);
+      if (by === 0) {
+        break;  // nothing more to do, either abutting or not
+      }
+
+      // At this point, we're abutting the target node and want to go further, so let the caller
+      // decide where to go (or choose for them if there's only one option).
+      // TODO: maybe always force a choice
+      let choices: K[];
+
+      if (slice.along.length === 1) {
+        choices = [...node.other.keys()];  // can go anywhere, node is O(1)
+      } else {
+        // Step back a node and see what direction the slice can go in.
+        const prev = slice.along.at(end === 1 ? -2 : 1)!;
+        choices = [...node.other.get(prev)?.through ?? []];  // only connections
+      }
+
+      const choice: K | undefined = choices.length > 1 && where?.(choices) || choices[0];
+      if (choice === undefined) {
+        break;  // can't go anywhere
+      }
+
+      const side = node.other.get(choice);
+      if (side === undefined) {
+        break;  // invalid choice
+      }
+
+      // Finally, push the choice we made onto the right end.
+      if (end === 1) {
+        slice.along.push(choice);
+        slice.front = side.edge.length;
+      } else {
+        slice.along.unshift(choice);
+        slice.back = side.edge.length;
+      }
+    }
+
+    const change = max - by;
+    slice.length += change;
+    return change;
   }
 
   deleteSlice(id: S): boolean {
@@ -331,13 +395,13 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     return true;
   }
 
-  lookupSlice(id: S): { along: K[]; front: number; back: number; } | undefined {
+  lookupSlice(id: S): { along: K[], front: number, back: number, length: number } | undefined {
     const slice = this.#slices.get(id);
     if (!slice) {
       return undefined;
     }
 
-    return { along: [...slice.along], front: slice.front, back: slice.back };
+    return { along: [...slice.along], front: slice.front, back: slice.back, length: slice.length };
   }
 
   querySlice(id: S): { other: K[]; } {
