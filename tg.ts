@@ -163,7 +163,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
   connect(a: K, through: K, b: K): boolean {
     if (a === b || through === a || through === b) {
       throw new Error(`joins must be unique`);
-    } 
+    }
 
     const throughNode = this.#implicitNode(through);
     const aSide = throughNode.other.get(a);
@@ -321,12 +321,12 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
         check(slice.along.length >= 2);
       }
       check(slice.length >= 0);
- 
+
       return max;  // will be -ve
     }
 
     // otherwise, grow!
-    for (;;) {
+    for (; ;) {
       let nodeId: K;
       let newlyAbutting: boolean;
 

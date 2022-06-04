@@ -67,7 +67,7 @@ export interface TrainGraph<K, S, D> {
   /**
    * Grows the specified slice by a given integer size (possibly -ve).
    */
-  modifySlice(id: S, end: -1|1, by: number, where?: (choice: K[]) => K | undefined): number;
+  modifySlice(id: S, end: -1 | 1, by: number, where?: (choice: K[]) => K | undefined): number;
 
   /**
    * Deletes the given slice.
