@@ -50,13 +50,6 @@ function check(cond: boolean) {
 }
 
 
-function assertPositiveInteger(check: number) {
-  if (check <= 0 || ~~check !== check) {
-    throw new Error(`check must be +ve integer: ${check}`);
-  }
-}
-
-
 export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
   #nodes = new Map<K, NodeImpl<K, S>>();
   #slices = new Map<S, SliceImpl<K>>();
@@ -76,7 +69,9 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
   };
 
   addEdge(low: K, high: K, length: number): boolean {
-    assertPositiveInteger(length);
+    if (length <= 0 || ~~length !== length) {
+      throw new Error(`length must be +ve integer: ${length}`);
+    }
     if (low === high) {
       throw new Error(`can't join to self: ${low}`);
     }
