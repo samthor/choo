@@ -92,13 +92,8 @@ export interface TrainGraphEdgeFeed<K> extends EventTarget {
    */
   allEdges(): IterableIterator<{ a: K, b: K, length: number }>;
 
-  /**
-   * Listener for edge changes.
-   */
   addEventListener<K extends 'edge'>(type: K, listener: (this: TrainGraphEdgeFeed<K>, ev: EdgeEvent) => any, options?: boolean | AddEventListenerOptions): void;
-
   removeEventListener<K extends 'edge'>(type: K, listener: (this: TrainGraphEdgeFeed<K>, ev: EdgeEvent) => any);
-
 }
 
 
