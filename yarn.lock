@@ -132,3 +132,27 @@ esbuild@^0.14.42:
     esbuild-windows-32 "0.14.42"
     esbuild-windows-64 "0.14.42"
     esbuild-windows-arm64 "0.14.42"
+
+mri@^1.1.6:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/mri/-/mri-1.2.0.tgz#6721480fec2a11a4889861115a48b6cbe7cc8f0b"
+  integrity sha512-tzzskb3bG8LvYGFF/mDTpq3jpI6Q9wc3LEmBaghu+DdCssd1FakN7Bc0hVNmEyGq1bq3RgfkCb3cmQLpNPOroA==
+
+picomatch@^2.3.0:
+  version "2.3.1"
+  resolved "https://registry.yarnpkg.com/picomatch/-/picomatch-2.3.1.tgz#3ba3833733646d9d3e4995946c1365a67fb07a42"
+  integrity sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA==
+
+sents-cli@^0.3.4:
+  version "0.3.4"
+  resolved "https://registry.yarnpkg.com/sents-cli/-/sents-cli-0.3.4.tgz#9a9aa6e4e7d5e7ab32c536233585fad173fbfbd5"
+  integrity sha512-CB5meyFhsFLiN5ktbxmT6UVtdK5biHNXSAwfb5b085Q70DYNsiBLaHtwgucYYphvr60k+vi7W7eKl4TAKj/a5Q==
+  dependencies:
+    mri "^1.1.6"
+    picomatch "^2.3.0"
+    sents "^0.3.2"
+
+sents@^0.3.2:
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/sents/-/sents-0.3.2.tgz#0263b86d3ad5a770a98b382f2cc59f32b02acdf4"
+  integrity sha512-/4pT+XHLA1NF7v5PUBKueaq92ovmuUJugFxKo9Hw3vJenY5zkTW5dQjnzIu9enFoFLF/9IKWN2KeNq9ko9udYQ==

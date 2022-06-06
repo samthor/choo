@@ -147,7 +147,7 @@ export class TrainGraphImpl<K, S> extends EventTarget implements TrainGraph<K, S
     const edge = aToBSide.edge;
 
     // There's slices here, so the edge can't be deleted.
-    if (edge.slices.count() !== 0) {
+    if (edge.slices.total() !== 0) {
       return false;
     }
     this.#edges.delete(edge);

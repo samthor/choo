@@ -4,10 +4,12 @@
     "esbuild": "^0.14.42"
   },
   "devDependencies": {
-    "@types/node": "^17.0.39"
+    "@types/node": "^17.0.39",
+    "sents-cli": "^0.3.4"
   },
   "scripts": {
-    "test": "esbuild --format=esm --bundle --platform=node test.ts > _test.mjs && node _test.mjs"
+    "test": "esbuild --format=esm --bundle --platform=node test.ts > _test.mjs && node _test.mjs",
+    "build": "esbuild --format=esm --bundle demo.ts > demo/_out.js"
   },
   "type": "module"
 }

@@ -6,12 +6,11 @@ import { PairMap, PairSet } from './helper/maps';
  * An inefficient component graph. Does not handle removals well as it must search both sides to
  * determine the possible outcome (split or remain).
  * 
- * A component graph helps identify components that are not connected to other parts of a graph.
+ * A component graph identifies components that are not connected to other parts of a graph.
  *
  * Apparently this is a hard (although possibly somewhat solved) problem. The best approach creates
- * "walks" across each disconnected graph (i.e., revisit nodes is fine) that:
- *   (a) have a root (which can be trivially changed)
- *   (b) can quickly look up and add or cut edgess
+ * spanning trees across each disconnected graph, creates a Euler tour over each tree, and uses
+ * some magic weighting stuff to aggregate "less general" parts of the graph.
  *
  * @see https://en.wikipedia.org/wiki/Component_(graph_theory)
  * @see https://en.wikipedia.org/wiki/Dynamic_connectivity
@@ -70,13 +69,16 @@ export class ComponentGraph<K> {
       return false;
     }
 
+    const aPairs = this.#pairs.pairsWith(a);
+    const bPairs = this.#pairs.pairsWith(b);
+
     // See if either side is now an orphan, and bail out early if so.
     let doneEarly = false;
-    if (this.#pairs.pairsWith(a) === 0) {
+    if (aPairs === 0) {
       this.#comp.delete(a);
       doneEarly = true;
     }
-    if (this.#pairs.pairsWith(b) === 0) {
+    if (bPairs === 0) {
       this.#comp.delete(b);
       doneEarly = true;
     }
@@ -84,7 +86,8 @@ export class ComponentGraph<K> {
       return true;
     }
 
-    // TODO: slow. We need to search both sides to see if there's any overlap.
+    // Otherwise, do a very slow search: we have to expand all nodes on both sides to find out if
+    // there's any remaining overlap. We randomly pick "A" to expand fully first.
     const setA = new Set(this.#from(a));
     const setB = new Set<K>();
     for (const check of this.#from(b)) {

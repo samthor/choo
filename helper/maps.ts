@@ -6,7 +6,7 @@ export class CountSet<T> {
   #m = new Map<T, number>();
   #count = 0;
 
-  count() {
+  total() {
     return this.#count;
   }
 
@@ -14,6 +14,10 @@ export class CountSet<T> {
     this.#m.set(t, (this.#m.get(t) ?? 0) + 1);
     ++this.#count;
     return true;
+  }
+
+  entries() {
+    return this.#m.entries();
   }
 
   delete(t: T): boolean {

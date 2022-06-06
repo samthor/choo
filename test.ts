@@ -74,10 +74,10 @@ test('check something', () => {
 
   assert(!tg.deleteSlice(1234));
   assert(tg.addSlice(1234, 'random-node'), 'add to random node OK');
-  assert.strictEqual(tg._nodesForTest().get('random-node')?.slices.count(), 1);
+  assert.strictEqual(tg._nodesForTest().get('random-node')?.slices.total(), 1);
   assert(tg.deleteSlice(1234));
   assert(!tg.deleteSlice(1234));
-  assert.strictEqual(tg._nodesForTest().get('random-node')?.slices.count(), 0);
+  assert.strictEqual(tg._nodesForTest().get('random-node')?.slices.total(), 0);
 
   assert(tg.addSlice(1, 'b'));
   assert(!tg.addSlice(1, 'c'), 'already on board');
@@ -97,9 +97,9 @@ test('check something', () => {
     assert.deepStrictEqual(choices, ['a', 'c']);
     return 'c';
   }), 5);
-  assert.strictEqual(tg._nodesForTest().get('c')?.slices.count(), 0, 'not reached `c`');
+  assert.strictEqual(tg._nodesForTest().get('c')?.slices.total(), 0, 'not reached `c`');
   assert.strictEqual(tg.modifySlice(1, 1, 99, () => { throw new Error(`should not be called`) }), 5);
-  assert.strictEqual(tg._nodesForTest().get('c')?.slices.count(), 1, 'reached `c`');
+  assert.strictEqual(tg._nodesForTest().get('c')?.slices.total(), 1, 'reached `c`');
 
   assert.strictEqual(tg.modifySlice(1, -1, 1, () => { throw new Error(`should not be called`) }), 1);
   assert(!tg.disconnect('a', 'b', 'c'));
