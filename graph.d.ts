@@ -16,7 +16,7 @@ export interface DescribedSlice<K, S> {
 }
 
 
-export interface TrainGraph<K, S, D> {
+export interface TrainGraph<K, S> {
 
   /**
    * Adds an edge to this graph. Returns true if successful, false if the edge already exists
@@ -33,16 +33,6 @@ export interface TrainGraph<K, S, D> {
    * Deletes the edge between these two nodes.
    */
   deleteEdge(a: K, b: K): boolean;
-
-  /**
-   * Creates a division marker at the given node.
-   */
-  addDivision(at: K, div: D): void;
-
-  /**
-   * Removes a disivion at the given node.
-   */
-  deleteDivision(at: K, div: D): void;
 
   /**
    * Adds a connection from a->b through the passed node.
@@ -86,3 +76,50 @@ export interface TrainGraph<K, S, D> {
   querySlice(id: S): { other: K[] };
 
 }
+
+
+export interface EdgeEvent<K> extends Event {
+  readonly a: K;
+  readonly b: K;
+  readonly length: number;
+}
+
+
+export interface TrainGraphEdgeFeed<K> extends EventTarget {
+
+  /**
+   * Enumerate through all edges. Modifying the set of edges during this call has undefined behavior.
+   */
+  allEdges(): IterableIterator<{ a: K, b: K, length: number }>;
+
+  /**
+   * Listener for edge changes.
+   */
+  addEventListener<K extends 'edge'>(type: K, listener: (this: TrainGraphEdgeFeed<K>, ev: EdgeEvent) => any, options?: boolean | AddEventListenerOptions): void;
+
+  removeEventListener<K extends 'edge'>(type: K, listener: (this: TrainGraphEdgeFeed<K>, ev: EdgeEvent) => any);
+
+}
+
+
+
+export interface DivisionGraph<K> {
+
+  /**
+   * Creates a division marker at the given node.
+   */
+  addDivision(at: K): boolean;
+
+  /**
+   * Removes a division marker at the given node.
+   */
+  deleteDivision(at: K): boolean;
+
+  /**
+   * Lookup all nodes that share this division.
+   */
+  lookupDivisionByEdge(a: K, b: K): Iterable<{ a: K, b: K }>;
+
+}
+
+

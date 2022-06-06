@@ -18,7 +18,7 @@ const check = (cond: boolean) => {
  *
  * This works by removing and re-adding all the slices that are on the split edge.
  */
-export function splitEdge<K, S>(graph: TrainGraph<K, S, any>, a: K, b: K, at: number, split: K): boolean {
+export function splitEdge<K, S>(graph: TrainGraph<K, S>, a: K, b: K, at: number, split: K): boolean {
   const edge = graph.lookupEdge(a, b);
   if (edge === undefined) {
     return false;
@@ -103,7 +103,7 @@ export function invertEnd(end: -1|1): -1|1 {
 /**
  * Moves the slice along a direction. Just grows one end and shrinks another.
  */
-export function moveSlice<K, S>(graph: TrainGraph<K, S, any>, id: S, end: -1|1, by: number, where?: (choice: K[]) => K | undefined): number {
+export function moveSlice<K, S>(graph: TrainGraph<K, S>, id: S, end: -1|1, by: number, where?: (choice: K[]) => K | undefined): number {
   if (by === 0) {
     return 0;
   }
@@ -122,7 +122,7 @@ export function moveSlice<K, S>(graph: TrainGraph<K, S, any>, id: S, end: -1|1, 
  * Adds the described slice to the graph under the specified ID. Returns false if the slice cannot
  * be added (already on the board, or invalid specification - will be removed).
  */
-export function addDescribedSlice<K, S>(graph: TrainGraph<K, S, any>, id: S, slice: DescribedSlice<K, S>): boolean {
+export function addDescribedSlice<K, S>(graph: TrainGraph<K, S>, id: S, slice: DescribedSlice<K, S>): boolean {
   if (slice.along.length === 0) {
     throw new Error(`invalid slice, no along nodes`);
   }
@@ -171,7 +171,7 @@ export function addDescribedSlice<K, S>(graph: TrainGraph<K, S, any>, id: S, sli
 /**
  * Clones the identified slice to a new ID.
  */
-export function cloneSlice<K, S>(graph: TrainGraph<K, S, any>, prev: S, add: S): boolean {
+export function cloneSlice<K, S>(graph: TrainGraph<K, S>, prev: S, add: S): boolean {
   const s = graph.lookupSlice(prev);
   if (s === undefined) {
     return false;

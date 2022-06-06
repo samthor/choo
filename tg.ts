@@ -1,5 +1,5 @@
-import { DescribedSlice, TrainGraph } from './graph';
-import { CountSet } from './helper/maps';
+import { DescribedSlice, TrainGraph, TrainGraphEdgeFeed } from './graph';
+import { CountSet, PairSet } from './helper/maps';
 import { arrayContainsSub } from './helper/array';
 
 
@@ -50,9 +50,24 @@ function check(cond: boolean) {
 }
 
 
-export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
+class EdgeEventImpl<K> extends Event {
+  a: K;
+  b: K;
+  length: number;
+
+  constructor(a: K, b: K, length: number) {
+    super('edge');
+    this.a = a;
+    this.b = b;
+    this.length = length;
+  }
+}
+
+
+export class TrainGraphImpl<K, S> extends EventTarget implements TrainGraph<K, S>, TrainGraphEdgeFeed<K> {
   #nodes = new Map<K, NodeImpl<K, S>>();
   #slices = new Map<S, SliceImpl<K>>();
+  #edges = new Set<EdgeImpl<K, S>>();
 
   _nodesForTest() {
     return this.#nodes;
@@ -87,6 +102,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       length,
       slices: new CountSet(),
     };
+    this.#edges.add(edge);
 
     const highNode = this.#implicitNode(high);
 
@@ -99,6 +115,7 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
       edge,
     });
 
+    this.dispatchEvent(new EdgeEventImpl(low, high, length));
     return true;
   }
 
@@ -127,11 +144,13 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     if (aToBSide === undefined) {
       return false;
     }
+    const edge = aToBSide.edge;
 
     // There's slices here, so the edge can't be deleted.
-    if (aToBSide.edge.slices.count() !== 0) {
+    if (edge.slices.count() !== 0) {
       return false;
     }
+    this.#edges.delete(edge);
 
     aToBSide.through.forEach((check) => {
       aNode.other.get(check)?.through.delete(b);
@@ -144,15 +163,8 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
     });
     bNode.other.delete(a);
 
+    this.dispatchEvent(new EdgeEventImpl(a, b, 0));
     return true;
-  }
-
-  addDivision(at: K, div: D): void {
-    throw new Error('Method not implemented.');
-  }
-
-  deleteDivision(at: K, div: D): void {
-    throw new Error('Method not implemented.');
   }
 
   connect(a: K, through: K, b: K): boolean {
@@ -453,6 +465,12 @@ export class TrainGraphImpl<K, S, D> implements TrainGraph<K, S, D> {
 
   querySlice(id: S): { other: K[]; } {
     throw new Error('Method not implemented.');
+  }
+
+  *allEdges(): IterableIterator<{ a: K; b: K; length: number; }> {
+    for (const edge of this.#edges) {
+      yield { a: edge.low, b: edge.high, length: edge.length };
+    }
   }
 
 }

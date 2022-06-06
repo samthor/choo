@@ -4,10 +4,10 @@ import assert from 'node:assert';
 
 import { TrainGraphImpl } from './tg';
 import * as helpers from './graph-helpers';
+import { ComponentGraph, DivisionGraphImpl } from './component';
 
 test('check something', () => {
-
-  const tg = new TrainGraphImpl<string, number, string>();
+  const tg = new TrainGraphImpl<string, number>();
 
   // edge creation tests
 
@@ -127,8 +127,7 @@ test('check something', () => {
 });
 
 test('check deleting connections', () => {
-
-  const tg = new TrainGraphImpl<string, number, string>();
+  const tg = new TrainGraphImpl<string, number>();
 
   assert(tg.addEdge('a', 'b', 10));
   assert(tg.addEdge('c', 'b', 17));
@@ -162,7 +161,7 @@ test('check deleting connections', () => {
 });
 
 test('helpers', () => {
-  const tg = new TrainGraphImpl<string, number, string>();
+  const tg = new TrainGraphImpl<string, number>();
 
   assert(tg.addEdge('a', 'b', 10));
   assert(tg.addEdge('c', 'b', 17));
@@ -204,3 +203,79 @@ test('helpers', () => {
     length: 3,
   });
 });
+
+test('component', () => {
+  const x = new ComponentGraph<number>();
+
+  assert(x.add(1, 2));
+  assert(!x.add(2, 1));
+  assert(x.add(100, 101));
+  assertIteratorAnyOrder(x.sharedWith(1), [1, 2]);
+
+  assert(x.add(2, 3));
+  assert(x.add(3, 4));
+  assert(x.add(2, 4));
+  assertIteratorAnyOrder(x.sharedWith(1), [1, 2, 3, 4]);
+
+  assert(x.delete(3, 4));
+  assertIteratorAnyOrder(x.sharedWith(1), [1, 2, 3, 4]);
+
+  assert(x.add(0, 1));
+  assertIteratorAnyOrder(x.sharedWith(1), [0, 1, 2, 3, 4]);
+
+  assert(x.delete(1, 2));
+  assertIteratorAnyOrder(x.sharedWith(1), [0, 1]);
+  assertIteratorAnyOrder(x.sharedWith(2), [2, 3, 4]);
+
+  assert(x.add(1, 2));
+  assertIteratorAnyOrder(x.sharedWith(1), [0, 1, 2, 3, 4]);
+});
+
+test('maintains division graph', () => {
+  const tg = new TrainGraphImpl<string, number>();
+  tg.addEdge('n1', 'n2', 100);
+
+  const controller = new AbortController();
+
+  const dg = new DivisionGraphImpl(tg, controller.signal);
+  assertIteratorAnyOrder(dg.lookupDivisionByEdge('n1', 'n2'), [ { a: 'n1', b: 'n2' } ]);
+
+  tg.addEdge('n2', 'n3', 100);
+  assertIteratorAnyOrder(dg.lookupDivisionByEdge('n1', 'n2'), [ { a: 'n1', b: 'n2' }, { a: 'n2', b: 'n3' } ]);
+
+  dg.addDivision('n2');
+  assertIteratorAnyOrder(dg.lookupDivisionByEdge('n1', 'n2'), [ { a: 'n1', b: 'n2' } ]);
+  assertIteratorAnyOrder(dg.lookupDivisionByEdge('n3', 'n2'), [ { a: 'n2', b: 'n3' } ]);
+
+  controller.abort();
+  assertIteratorAnyOrder(dg.lookupDivisionByEdge('n1', 'n2'), []);
+
+});
+
+
+/**
+ * Confirm that the iterator contains the expected values, in any order.
+ */
+function assertIteratorAnyOrder(actual: Iterable<any>, expected: Iterable<any>) {
+  const check = [...expected];
+
+  for (const value of actual) {
+    let index = 0;
+    for (; index < check.length; ++index) {
+      try {
+        // Node doesn't really have this aside in assert.
+        assert.deepStrictEqual(value, check[index]);
+        break;
+      } catch {}
+    }
+
+    if (index === check.length) {
+      throw new Error(`mising value: ${value}`);
+    }
+    check.splice(index, 1);
+  }
+
+  if (check.length) {
+    throw new Error(`remaining values: ${check}`);
+  }
+}
