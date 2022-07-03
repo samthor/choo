@@ -1,4 +1,5 @@
-import { CountSet } from "./helper/maps";
+import { CountSet } from '../helper/maps';
+import { ComponentGraph } from './component';
 
 
 interface NodeData<K> {
@@ -24,18 +25,27 @@ interface NodeData<K> {
 
 
 /**
- * Represents a distinct tree in a ComponentGraph.
+ * Provides component information on a graph.
  */
-export class ComponentTreeExp<K> {
-  #root: K;
+export class ComponentTreeExp<K> implements ComponentGraph<K> {
+
+  has(a: K, b: K): boolean {
+    throw new Error('Method not implemented.');
+  }
+
+  groupSize(k: K): number {
+    throw new Error('Method not implemented.');
+  }
+
+  sharedGroup(...all: K[]): boolean {
+    throw new Error('Method not implemented.');
+  }
+
+  #roots = new Set<NodeData<K>>();
   #nodes = new Map<K, NodeData<K>>();
 
   _nodesForTest() {
     return this.#nodes;
-  }
-
-  rootNode() {
-    return this.#root;
   }
 
   parentOf(node: K): K | undefined {
@@ -74,20 +84,15 @@ export class ComponentTreeExp<K> {
     return nd;
   }
 
-  constructor(root: K) {
-    this.#attach(root);
-    this.#root = root;
-  }
-
   /**
-   * Add. At least one side must already be part of the tree.
+   * Add. If neither is in tree then the first argument is used as a root.
    */
   add(a: K, b: K): boolean {
     let nodeA = this.#nodes.get(a);
     let nodeB = this.#nodes.get(b);
 
     if (nodeA === undefined && nodeB === undefined) {
-      return false;  // can't create
+      nodeA = this.#attach(a);
     }
 
     // TODO: no attempt to balance graph
@@ -114,16 +119,23 @@ export class ComponentTreeExp<K> {
       return false;
     }
 
+    // TODO: could compute this slightly more efficiently (just get one, compare tree).
+    const parentsA = this.#parentsAndSelfFor(nodeA);
+    const parentsB = this.#parentsAndSelfFor(nodeB);
+
+    // Check we're in the same root. If not then add another way.
+    if (parentsA.at(-1) !== parentsB.at(-1)) {
+      // Find the shortest stack (least rotation) and attach that to the largest stack.
+      throw new Error(`TODO: do the least rotation and attach`);
+    }
+
     // Otherwise create a non-tree direct link.
     nodeA.friend.add(nodeB);
     nodeB.friend.add(nodeA);
 
-    const parentsA = this.#parentsAndSelfFor(nodeA);
-    const parentsB = this.#parentsAndSelfFor(nodeB);
-
     // For every parent of A that isn't common with B, indicate that we can get to B.
     for (const node of parentsA) {
-      if (parentsB.has(node) || node === b) {
+      if (parentsB.includes(node) || node === b) {
         break;
       }
       const data = this.#dataFor(node);
@@ -132,7 +144,7 @@ export class ComponentTreeExp<K> {
 
     // For every parent of B that isn't common with A, indicate that we can get to A.
     for (const node of parentsB) {
-      if (parentsA.has(node) || node === a) {
+      if (parentsA.includes(node) || node === a) {
         break;
       }
       const data = this.#dataFor(node);
@@ -145,24 +157,27 @@ export class ComponentTreeExp<K> {
   /**
    * Delete. This may create an orphaned set of nodes.
    */
-  delete(a: K, b: K): { change: boolean, orphan?: K[] } {
+  delete(a: K, b: K): boolean {
     let nodeA = this.#nodes.get(a);
     let nodeB = this.#nodes.get(b);
 
     if (nodeA === undefined || nodeB === undefined) {
-      return { change: false };  // wasn't in graph
+      return false;
     }
 
     // Find if this was a parent relation or a "friend" relation.
     if (nodeA.parent === nodeB) {
-      const orphan = this.#cutParent(a, b);
-      return { change: true, orphan };
+      this.#cutParent(a, b);
+      return true;
     } else if (nodeB.parent === nodeA) {
-      const orphan = this.#cutParent(b, a);
-      return { change: true, orphan };
+      this.#cutParent(b, a);
+      return true;
     } else if (!nodeB.friend.has(nodeA)) {
-      return { change: false };  // wasn't connected
+      return false;  // wasn't connected
     }
+
+    nodeA.friend.delete(nodeB);
+    nodeB.friend.delete(nodeA);
 
     // This is a friend relation. We'll never orphan nodes but we have work to do.
     // This is simply the reverse of what is done in `add`.
@@ -172,7 +187,7 @@ export class ComponentTreeExp<K> {
 
     // For every parent of A that isn't common with B, indicate that we can get to B.
     for (const node of parentsA) {
-      if (parentsB.has(node) || node === b) {
+      if (parentsB.includes(node) || node === b) {
         break;
       }
       const data = this.#dataFor(node);
@@ -181,17 +196,17 @@ export class ComponentTreeExp<K> {
 
     // For every parent of B that isn't common with A, indicate that we can get to A.
     for (const node of parentsB) {
-      if (parentsA.has(node) || node === a) {
+      if (parentsA.includes(node) || node === a) {
         break;
       }
       const data = this.#dataFor(node);
       data.familyFriend.delete(nodeA);
     }
 
-    return { change: true };
+    return true;
   }
 
-  #cutParent(child: K, parent: K): K[] | undefined {
+  #cutParent(child: K, parent: K): void {
     const parentData = this.#dataFor(parent);
     const childData = this.#dataFor(child);
 
@@ -202,10 +217,12 @@ export class ComponentTreeExp<K> {
     // If it's empty, then there's nothing to be done: us and all our children are orphaned.
     // Create a subtree.
     if (childData.familyFriend.total() === 0) {
+      parentData.children.delete(childData);
+      childData.parent = undefined;
+      this.#roots.add(childData);
 
-      // TODO: this class should support multiple subtrees
-
-      throw new Error(`TODO: got subtree`);
+      // TODO: clear empties?
+      return;
     }
 
     // If it's not empty, then find any ancestor (including ourselves) which includes one of the set as a friend.
@@ -246,8 +263,7 @@ export class ComponentTreeExp<K> {
       throw new Error(`could not find child providing familyFriend?`);
     }
 
-    throw new Error(`TODO: connected but need to find new join`);
-    return undefined;
+    throw new Error(`Should never get here`);
   }
 
   #dataFor(node: K): NodeData<K> {
@@ -261,15 +277,48 @@ export class ComponentTreeExp<K> {
   /**
    * Return all parents of this {@link NodeData}, including the root.
    */
-  #parentsAndSelfFor(data: NodeData<K> | undefined): Set<K> {
-    const out = new Set<K>();
+  #parentsAndSelfFor(data: NodeData<K> | undefined): K[] {
+    const out: K[] = [];
     if (data !== undefined) {
       while (data) {
-        out.add(data.id);
+        out.push(data.id);
         data = data.parent;
       }
     }
     return out;
+  }
+
+  /**
+   * Makes the specified node the root of its tree.
+   */
+  makeRoot(node: K) {
+    const nodeData = this.#nodes.get(node);
+    if (!nodeData) {
+      return;
+    }
+
+    const chain = this.#parentsAndSelfFor(nodeData).map((id) => this.#nodes.get(id)!);
+    chain.reverse();
+
+    while (chain.length > 1) {
+      const previousRoot = chain.shift()!;
+      const newRoot = chain[0];
+
+      previousRoot.parent = newRoot;
+      newRoot.parent = undefined;
+
+      // TODO: fix ff on both
+
+//      throw new Error(`can't rotate`);
+    }
+
+  }
+
+  /**
+   * Rotate the specified root node to its listed child.
+   */
+  #rotateRoot(rootNode: NodeData<K>, child: K) {
+    throw new Error(`TODO: hard`);
   }
 
 }

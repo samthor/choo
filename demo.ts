@@ -1,5 +1,5 @@
 
-import { ComponentTreeExp } from './component-exp';
+import { ComponentTreeExp } from './component/component-exp';
 
 const displayNode = document.createElement('div');
 document.body.append(displayNode);
@@ -25,7 +25,7 @@ class NodeDisplay extends HTMLElement {
 </small>
 </div>
 <div style="display: flex">
-    <slot></slot>
+  <slot></slot>
 </div>
 </div>
     `;
@@ -52,7 +52,15 @@ class Wrap extends ComponentTreeExp<string> {
     }
   }
 
-  delete(a: string, b: string): { change: boolean; orphan?: string[] | undefined; } {
+  makeRoot(node: string): void {
+    try {
+      return super.makeRoot(node);
+    } finally {
+      this.refresh();
+    }
+  }
+
+  delete(a: string, b: string): boolean {
     try {
       return super.delete(a, b);
     } finally {
@@ -64,6 +72,7 @@ class Wrap extends ComponentTreeExp<string> {
     console.info('nodes', this._nodesForTest());
 
     const test = this._nodesForTest();
+    displayNode.innerHTML = '';
 
     const nodeNode = new Map<string, HTMLElement>();
     for (const node of this.nodes()) {
@@ -83,20 +92,23 @@ class Wrap extends ComponentTreeExp<string> {
     }
 
     for (const node of this.nodes()) {
+      const n = nodeNode.get(node)!;
+
       const p = this.parentOf(node);
       if (p !== undefined) {
-        nodeNode.get(p)!.append(nodeNode.get(node)!);
+        nodeNode.get(p)!.append(n);
+      } else {
+        displayNode.append(n)
       }
     }
 
-    displayNode.innerHTML = '';
-    displayNode.append(nodeNode.get(this.rootNode())!);
   }
 
 }
 
 
-const t = new Wrap('root');
+const t = new Wrap();
+// @ts-ignore
 window.t = t;
 
 
@@ -110,4 +122,5 @@ const check = (cond: boolean) => {
 t.add('root', 'x');
 t.add('root', 'y');
 t.add('y', 'z');
+t.add('z', 'x');
 //check(t.add('z', 'root'));
